@@ -37,6 +37,8 @@ class StreamlitSessionCoodinator:
         return self._session_state[SessionKey.DATA_PROVIDER]
 
     def read_context(self, key: ContextKey) -> Any:
+        if(key not in self._session_state[SessionKey.CONTEXT].keys()):
+            return None
         return self._session_state[SessionKey.CONTEXT][key]
 
     def set_context(self, key: ContextKey, value: Any) -> None:

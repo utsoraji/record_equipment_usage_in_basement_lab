@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, timedelta
 
 import pandas as pd
 import streamlit as st
@@ -81,7 +81,9 @@ class UseStartPage(BasePage):
             elif period == "8 hours":
                 endtime = starttime + timedelta(hours=8)
             elif period == "all day":
-                endtime = datetime.combine(date.today() + timedelta(days=1), time(0, 0))
+                endtime = datetime.combine(
+                    datetime.date.today() + timedelta(days=1), datetime.time(0, 0)
+                )
             elif period == "later date":
                 tomorrow = datetime.today() + timedelta(days=1)
                 d = st.date_input(
@@ -90,7 +92,7 @@ class UseStartPage(BasePage):
                     value=tomorrow,
                     min_value=tomorrow,
                 )
-                endtime = datetime.combine(d, time(23, 59))
+                endtime = datetime.combine(d, datetime.time(23, 59))
             else:
                 raise ValueError(f"Unknown period: {period}")
 

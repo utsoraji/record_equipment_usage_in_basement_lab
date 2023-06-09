@@ -18,6 +18,7 @@ class SessionKey(Enum):
 
 class ContextKey(Enum):
     USAGE_RECORD = auto()
+    BACK_DESTINATION = auto()
 
 
 class UserPosition(Enum):

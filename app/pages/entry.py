@@ -1,6 +1,6 @@
-import pandas as pd
 import streamlit as st
 
+import app.apputil as util
 from app.const import ContextKey, PageId
 from app.model.user import User
 from app.pages.base import BasePage
@@ -27,7 +27,7 @@ class EntryPage(BasePage):
 
         st.button(
             "Start to Use Equipments",
-            on_click=lambda: self.ssc.set_current_page(PageId.USE_START),
+            on_click=lambda: util.goto(self.ssc, PageId.USE_START),
             disabled=selected == not_selected,
         )
 
@@ -38,7 +38,7 @@ class EntryPage(BasePage):
 
             def on_click_record():
                 self.ssc.set_context(ContextKey.USAGE_RECORD, u)
-                self.ssc.set_current_page(PageId.USE_FINISH)
+                util.goto(self.ssc, PageId.USE_FINISH)
 
             st.button(
                 label=f"{u.equipment.name}",

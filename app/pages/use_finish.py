@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
@@ -55,7 +55,6 @@ class UseFinishPage(BasePage):
 
         finish = st.button(
             "Finish to Use",
-            on_click=lambda: self.ssc.set_current_page(PageId.USE_START),
         )
 
         if finish:
@@ -79,11 +78,10 @@ class UseFinishPage(BasePage):
 
         estimatetime = datetime.combine(d, t)
 
-        finish = st.button(
+        change = st.button(
             "Change estimate end time",
-            on_click=lambda: self.ssc.set_current_page(PageId.USE_START),
         )
 
-        if finish:
+        if change:
             st.write(f"Finish time: {estimatetime}")
             # TODO
