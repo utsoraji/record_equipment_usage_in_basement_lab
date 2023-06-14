@@ -9,26 +9,7 @@ class PageId(Enum):
 
 
 class SessionKey(Enum):
-    CURRENT_PAGE = auto()
-    CURRENT_USER = auto()
+    APP = auto()
+    IS_INITIALIZED = auto()
     CONTEXT = auto()
-    DATA_PROVIDER = auto()
-    DATA_MANIPULATOR = auto()
-
-
-class ContextKey(Enum):
-    USAGE_RECORD = auto()
-    BACK_DESTINATION = auto()
-
-
-class UserPosition(Enum):
-    FACULTY = auto()
-    STUDENT = auto()
-    STAFF = auto()
-    NONE = auto()
-
-
-class UserRole(Enum):
-    ADMIN = auto()
-    USER = auto()
-    NONE = auto()
+    SERVICES = auto()

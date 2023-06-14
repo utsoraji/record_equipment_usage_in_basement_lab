@@ -1,26 +1,23 @@
 import streamlit as st
 
-import app.apputil as util
+import app.session as session
 from app.pages.base import BasePage
-from app.session import StreamlitSessionCoodinator
 
 
 class App:
-    def __init__(self, ssc: StreamlitSessionCoodinator, pages: list[BasePage]):
-        self.ssc = ssc
+    def __init__(self, pages: list[BasePage]):
         self.pages = {page.page_id: page for page in pages}
         # TODO remove print
         print(self.pages.keys())
 
     def render(self):
-        st.sidebar.button("Reset", on_click=util.reset)
-        back_destination = util.back_destination(self.ssc)
+        st.sidebar.button("Reset", on_click=session.reset)
         st.sidebar.button(
             "Back",
-            on_click=lambda: util.goto(self.ssc, back_destination, arrow_back=False),
-            disabled=back_destination is None,
+            on_click=lambda: session.get_cxt().goBack(),
+            disabled=session.get_cxt().back_destination is None,
         )
         # TODO remove print
-        print(self.ssc.current_page)
-        self.pages[self.ssc.current_page].render()
+        print(session.get_cxt().current_page)
+        self.pages[session.get_cxt().current_page].render()
         pass

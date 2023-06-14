@@ -1,45 +1,41 @@
-from typing import Any
-
 import streamlit as st
 
-from app.const import ContextKey, PageId, SessionKey
-from app.datastore.protocol import DataManipulator, DataProvider
-from app.model.user import User
+from app.app import App
+from app.const import PageId, SessionKey
+from app.context import AppContext
+from app.datastore.protocol import MasterProvider, TransactionController
+from app.services import AppServiceContainer
 
 
-class StreamlitSessionCoodinator:
-    def __init__(
-        self, data_provider: DataProvider, data_manipulator: DataManipulator
-    ) -> None:
-        self._session_state = st.session_state
-        self._session_state[SessionKey.CURRENT_PAGE] = PageId.START
-        self._session_state[SessionKey.CURRENT_USER] = None
-        self._session_state[SessionKey.DATA_PROVIDER] = data_provider
-        self._session_state[SessionKey.DATA_MANIPULATOR] = data_manipulator
-        self._session_state[SessionKey.CONTEXT] = dict()
+def init_session(
+    app: App,
+    initial_page: PageId,
+    master_provider: MasterProvider,
+    transaction_controller: TransactionController,
+) -> None:
+    st.session_state[SessionKey.APP] = app
+    st.session_state[SessionKey.CONTEXT] = AppContext(initial_page)
+    st.session_state[SessionKey.SERVICES] = AppServiceContainer(
+        master_provider, transaction_controller
+    )
+    st.session_state[SessionKey.IS_INITIALIZED] = True
 
-    @property
-    def current_page(self) -> PageId:
-        return self._session_state[SessionKey.CURRENT_PAGE]
 
-    def set_current_page(self, page_id: PageId) -> None:
-        self._session_state[SessionKey.CURRENT_PAGE] = page_id
+def is_initialized() -> bool:
+    return st.session_state.get(SessionKey.IS_INITIALIZED, False)
 
-    @property
-    def user(self) -> User:
-        return self._session_state[SessionKey.CURRENT_USER]
 
-    def set_user(self, user: User) -> None:
-        self._session_state[SessionKey.CURRENT_USER] = user
+def reset():
+    st.session_state[SessionKey.IS_INITIALIZED] = False
 
-    @property
-    def data_provider(self) -> DataProvider:
-        return self._session_state[SessionKey.DATA_PROVIDER]
 
-    def read_context(self, key: ContextKey) -> Any:
-        if(key not in self._session_state[SessionKey.CONTEXT].keys()):
-            return None
-        return self._session_state[SessionKey.CONTEXT][key]
+def get_app() -> App:
+    return st.session_state[SessionKey.APP]
 
-    def set_context(self, key: ContextKey, value: Any) -> None:
-        self._session_state[SessionKey.CONTEXT][key] = value
+
+def get_cxt() -> AppContext:
+    return st.session_state[SessionKey.CONTEXT]
+
+
+def get_svcs() -> AppServiceContainer:
+    return st.session_state[SessionKey.SERVICES]

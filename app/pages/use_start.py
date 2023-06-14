@@ -1,25 +1,62 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pandas as pd
 import streamlit as st
 
+import app.session as session
 from app.const import PageId
+from app.datastore.protocol import MasterProvider, NewUsageRecord, TransactionController
 from app.model.equipment import Equipment
 from app.pages.base import BasePage
-from app.session import StreamlitSessionCoodinator
+from app.pages.components.select_eqipments_grid import eqipments_grid
+
+
+def check_license(new_usage: NewUsageRecord) -> list[str]:
+    unlicensed = [
+        eq
+        for eq in new_usage.equipments
+        if eq.check_license and not [l for l in new_usage.user.licenses if l == eq.id]
+    ]
+    return [f"You are not licensed to use {eq.name}." for eq in unlicensed]
+
+
+def check_current_usage(
+    new_usage: NewUsageRecord, transaction_controller: TransactionController
+) -> list[str]:
+    usage_records = transaction_controller.usage_records
+
+    in_use: set[Equipment] = set()
+    for u in usage_records:
+        in_use = in_use.union(u.equipments)
+    return [
+        f" {eq.name} is in use already."
+        for eq in in_use.intersection(new_usage.equipments)
+    ]
+
+
+def check_reservation(
+    new_usage: NewUsageRecord, transaction_controller: TransactionController
+) -> list[str]:
+    reservations = transaction_controller.reservations
+    reserved: set[Equipment] = set()
+    for res in reservations:
+        res = reserved.union(res.equipments)
+
+    return [
+        f" {eq.name} is reserved today."
+        for eq in (reserved.intersection(new_usage.equipments))
+    ]
 
 
 class UseStartPage(BasePage):
-    def __init__(self, ssc: StreamlitSessionCoodinator) -> None:
-        super().__init__(PageId.USE_START, "Start to Use", ssc)
+    def __init__(self) -> None:
+        super().__init__(PageId.USE_START, "Start to Use")
 
     def render(self) -> None:
         st.title(self.title)
 
-        equipments: list[Equipment] = st.multiselect(
-            "Select facilities",
-            self.ssc.data_provider.equipments,
-            format_func=lambda x: x.name,
+        selected_equipments = eqipments_grid(
+            session.get_svcs().master_provider.equipments
         )
 
         starttime = pd.to_datetime(datetime.now()).round("min")
@@ -38,87 +75,34 @@ class UseStartPage(BasePage):
 
             starttime = datetime.combine(d, t)
 
-        endtime = starttime
-        with st.container():
-            period = st.select_slider(
-                "Period",
-                [
-                    "15 min",
-                    "30 min",
-                    "45 min",
-                    "1 hour",
-                    "2 hours",
-                    "3 hours",
-                    "4 hours",
-                    "5 hours",
-                    "6 hours",
-                    "7 hours",
-                    "8 hours",
-                    "all day",
-                    "later date",
-                ],
-            )
-            if period == "15 min":
-                endtime = starttime + timedelta(minutes=15)
-            elif period == "30 min":
-                endtime = starttime + timedelta(minutes=30)
-            elif period == "45 min":
-                endtime = starttime + timedelta(minutes=30)
-            elif period == "1 hour":
-                endtime = starttime + timedelta(hours=1)
-            elif period == "2 hours":
-                endtime = starttime + timedelta(hours=2)
-            elif period == "3 hours":
-                endtime = starttime + timedelta(hours=3)
-            elif period == "4 hours":
-                endtime = starttime + timedelta(hours=4)
-            elif period == "5 hours":
-                endtime = starttime + timedelta(hours=5)
-            elif period == "6 hours":
-                endtime = starttime + timedelta(hours=6)
-            elif period == "7 hours":
-                endtime = starttime + timedelta(hours=7)
-            elif period == "8 hours":
-                endtime = starttime + timedelta(hours=8)
-            elif period == "all day":
-                endtime = datetime.combine(
-                    datetime.date.today() + timedelta(days=1), datetime.time(0, 0)
-                )
-            elif period == "later date":
-                tomorrow = datetime.today() + timedelta(days=1)
-                d = st.date_input(
-                    "End date",
-                    label_visibility="collapsed",
-                    value=tomorrow,
-                    min_value=tomorrow,
-                )
-                endtime = datetime.combine(d, datetime.time(23, 59))
-            else:
-                raise ValueError(f"Unknown period: {period}")
-
-            st.write(f"Starting time: {starttime}")
-            st.write(f"End time: {endtime}")
+        st.divider()
+        selected_names = ", ".join(eq.name for eq in selected_equipments)
+        st.text(f"Selected:{selected_names}")
+        st.text(f"Start at:{starttime}")
 
         any_warning_exists = False
 
-        def check_license() -> bool:
-            licensed = self.ssc.user.licenses
-            unlicensed = [
-                eq
-                for eq in equipments
-                if eq.check_license and not [l for l in licensed if l == eq.id]
-            ]
-            for eq in unlicensed:
-                st.warning(f"You are not licensed to use {eq.name}.")
-            return len(unlicensed) > 0
+        new_record: NewUsageRecord = NewUsageRecord(
+            starting=starttime,
+            equipments=selected_equipments,
+            user=session.get_cxt().current_user,
+        )
 
-        any_warning_exists = check_license()
+        warnings: list[str] = []
+        warnings += check_license(new_record)
+        warnings += check_current_usage(new_record, session.get_svcs().master_provider)
+        warnings += check_reservation(new_record, session.get_svcs().master_provider)
+
+        any_warning_exists = len(warnings) > 0
+        for w in warnings:
+            st.warning(w)
 
         start = st.button(
             any_warning_exists and "Start anyway" or "Start",
-            disabled=len(equipments) == 0,
+            disabled=len(selected_equipments) == 0,
         )
 
         if start:
-            st.write(f"Start time: {starttime}")
+            with st.spinner("Saving..."):
+                self.ssc.transaction_controller.add_usage_record(new_record)
             # TODO

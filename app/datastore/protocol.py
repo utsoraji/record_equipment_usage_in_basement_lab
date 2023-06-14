@@ -1,4 +1,6 @@
-from typing import Protocol
+import datetime
+from dataclasses import dataclass
+from typing import Optional, Protocol
 
 from app.datastore.dataset import DataSet
 from app.model.equipment import Equipment
@@ -8,7 +10,7 @@ from app.model.usage_record import UsageRecord
 from app.model.user import User
 
 
-class DataProvider(Protocol):
+class MasterProvider(Protocol):
     @property
     def users(self) -> DataSet[User]:
         ...
@@ -18,6 +20,20 @@ class DataProvider(Protocol):
         ...
 
     @property
+    def labos(self) -> DataSet[Labo]:
+        ...
+
+
+@dataclass(frozen=True)
+class NewUsageRecord:
+    user: User
+    equipments: set[Equipment]
+    starting: datetime.datetime
+    end_estimate: Optional[datetime.datetime]
+
+
+class TransactionController(Protocol):
+    @property
     def reservations(self) -> DataSet[Reservation]:
         ...
 
@@ -25,17 +41,11 @@ class DataProvider(Protocol):
     def usage_records(self) -> DataSet[UsageRecord]:
         ...
 
-    @property
-    def labos(self) -> DataSet[Labo]:
+    def add_usage_record(self, usage_record: NewUsageRecord) -> UsageRecord:
         ...
 
-
-class DataManipulator(Protocol):
-    def add_usage_record(self, usage_record: UsageRecord) -> None:
+    def update_usage_record(self, usage_record: UsageRecord) -> UsageRecord:
         ...
 
-    def update_usage_record(self, usage_record: UsageRecord) -> None:
-        ...
-
-    def finish_usage_record(self, usage_record: UsageRecord) -> None:
+    def finish_usage_record(self, usage_record: UsageRecord) -> UsageRecord:
         ...

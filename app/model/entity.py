@@ -1,5 +1,5 @@
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Protocol
 
 
 @dataclass(frozen=True)
@@ -14,5 +14,9 @@ class RefId:
 
 
 @dataclass(frozen=True)
-class Entity(Protocol):
+class Entity(ABC):
     id: RefId
+
+    @abstractmethod
+    def validate(self) -> None:
+        ...

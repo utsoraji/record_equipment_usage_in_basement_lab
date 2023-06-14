@@ -1,30 +1,35 @@
+from typing import Any
+
 import pandas as pd
 import streamlit as st
 
-import app.apputil as util
+import app.session as session
 from app.const import PageId
+from app.model.usage_record import UsageRecord
 from app.pages.base import BasePage
-from app.session import StreamlitSessionCoodinator
 
 
 class StartPage(BasePage):
-    def __init__(self, ssc: StreamlitSessionCoodinator) -> None:
-        super().__init__(PageId.START, "Start", ssc)
+    def __init__(self) -> None:
+        super().__init__(PageId.START, "Start")
 
     def render(self) -> None:
         st.title(self.title)
-        st.button("Start", on_click=lambda: util.goto(self.ssc, PageId.ENTRY))
+        st.button("Start", on_click=lambda: session.get_cxt().goto(PageId.ENTRY))
 
-        def convert_usage_record(UsageRecord):
+        def usage_record_to_rowdata(record: UsageRecord) -> dict[str, Any]:
             return {
-                "equipment": UsageRecord.equipment.name,
-                "user": UsageRecord.user.name,
-                "starting": UsageRecord.starting,
-                "end_estimate": UsageRecord.end_estimate,
-                "note": UsageRecord.note,
+                "equipments": ", ".join(eq.name for eq in record.equipments),
+                "user": record.user.name,
+                "starting": record.starting,
+                "end_estimate": record.end_estimate,
+                "note": record.note,
             }
 
         df = pd.DataFrame(
-            [convert_usage_record(r) for r in self.ssc.data_provider.usage_records]
+            [
+                usage_record_to_rowdata(r)
+                for r in session.get_svcs().transaction_controller.usage_records
+            ]
         )
         st.table(df)

@@ -1,12 +1,17 @@
 import datetime
 from dataclasses import dataclass
 
-from app.model.entity import Entity, RefId
+from app.model.entity import Entity
+from app.model.equipment import Equipment
+from app.model.user import User
 
 
 @dataclass(frozen=True)
 class Reservation(Entity):
     starting: datetime.datetime
     end: datetime.datetime
-    user: RefId
-    equipment: RefId
+    user: User
+    equipments: set[Equipment]
+
+    def validate(self) -> None:
+        return super().validate()

@@ -1,19 +1,36 @@
 import datetime
 from dataclasses import dataclass
+from enum import Enum, auto
+from typing import Optional
 
-from app.const import UserPosition, UserRole
-from app.model.entity import Entity, RefId
+from app.model.entity import Entity
+from app.model.equipment import Equipment
+from app.model.labo import Labo
+
+
+class UserPosition(Enum):
+    FACULTY = auto()
+    STUDENT = auto()
+    STAFF = auto()
+    NONE = auto()
+
+
+class UserRole(Enum):
+    ADMIN = auto()
+    USER = auto()
+    NONE = auto()
 
 
 @dataclass(frozen=True)
 class User(Entity):
+    ecc_mail: str
     name_roman: str
     name_kanakanji: str
-    labo: RefId = None
+    labo: Labo = None
     position: UserPosition = UserPosition.NONE
     role: UserRole = UserRole.NONE
-    licenses: tuple[RefId] = ()
-    expire_date: datetime.date = None
+    licenses: set[Equipment] = ()
+    expire_date: Optional[datetime.date] = None
 
     @property
     def name(self) -> str:
@@ -24,9 +41,13 @@ class User(Entity):
         else:
             return f"ID: {self.id}"
 
+    def validate(self) -> None:
+        return super().validate()
+
     @classmethod
     def empty(cls) -> "User":
         return cls(
+            "-",
             "-",
             "-",
             "-",
