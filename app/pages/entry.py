@@ -15,7 +15,7 @@ class EntryPage(BasePage):
 
         not_selected = User.empty()
         options: list[User] = [not_selected] + list(
-            session.get_svcs().master_provider.users
+            session.get_svcs().master_provider.users.values()
         )
         selected = st.selectbox(
             "Select your name",
@@ -36,7 +36,7 @@ class EntryPage(BasePage):
 
         usages = [
             u
-            for u in session.get_svcs().transaction_controller.usage_records
+            for u in session.get_svcs().transaction_controller.usage_records.values()
             if u.user == selected
         ]
         for u in usages:

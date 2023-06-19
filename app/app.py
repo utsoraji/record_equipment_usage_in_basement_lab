@@ -14,7 +14,7 @@ class App:
         st.sidebar.button("Reset", on_click=session.reset)
         st.sidebar.button(
             "Back",
-            on_click=lambda: session.get_cxt().goBack(),
+            on_click=lambda: session.get_cxt().go_back(),
             disabled=session.get_cxt().back_destination is None,
         )
         # TODO remove print

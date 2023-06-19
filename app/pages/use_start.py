@@ -23,10 +23,8 @@ def check_license(new_usage: NewUsageRecord) -> list[str]:
 def check_current_usage(
     new_usage: NewUsageRecord, transaction_controller: TransactionController
 ) -> list[str]:
-    usage_records = transaction_controller.usage_records
-
     in_use: set[Equipment] = set()
-    for u in usage_records:
+    for u in transaction_controller.usage_records.values():
         in_use = in_use.union(u.equipments)
     return [
         f" {eq.name} is in use already."
@@ -37,9 +35,8 @@ def check_current_usage(
 def check_reservation(
     new_usage: NewUsageRecord, transaction_controller: TransactionController
 ) -> list[str]:
-    reservations = transaction_controller.reservations
     reserved: set[Equipment] = set()
-    for res in reservations:
+    for res in transaction_controller.reservations.values():
         res = reserved.union(res.equipments)
 
     return [
@@ -56,7 +53,7 @@ class UseStartPage(BasePage):
         st.title(self.title)
 
         selected_equipments = eqipments_grid(
-            session.get_svcs().master_provider.equipments
+            session.get_svcs().master_provider.equipments.values(),
         )
 
         starttime = pd.to_datetime(datetime.now()).round("min")
@@ -84,14 +81,19 @@ class UseStartPage(BasePage):
 
         new_record: NewUsageRecord = NewUsageRecord(
             starting=starttime,
+            end_estimate=None,
             equipments=selected_equipments,
             user=session.get_cxt().current_user,
         )
 
         warnings: list[str] = []
         warnings += check_license(new_record)
-        warnings += check_current_usage(new_record, session.get_svcs().master_provider)
-        warnings += check_reservation(new_record, session.get_svcs().master_provider)
+        warnings += check_current_usage(
+            new_record, session.get_svcs().transaction_controller
+        )
+        warnings += check_reservation(
+            new_record, session.get_svcs().transaction_controller
+        )
 
         any_warning_exists = len(warnings) > 0
         for w in warnings:
@@ -104,5 +106,9 @@ class UseStartPage(BasePage):
 
         if start:
             with st.spinner("Saving..."):
-                self.ssc.transaction_controller.add_usage_record(new_record)
+                reslut = session.get_svcs().transaction_controller.add_usage_record(
+                    new_record
+                )
+                session.get_cxt().set_target_usage_record(reslut)
+                session.get_cxt().goto(PageId.ENTRY)
             # TODO

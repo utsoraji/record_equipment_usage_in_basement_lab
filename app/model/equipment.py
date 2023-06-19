@@ -10,7 +10,6 @@ class Equipment(Entity):
     name_roman: Optional[str]
     name_kanakanji: str
     image_url: str
-    labo: Labo
     location: str
     check_license: bool
 

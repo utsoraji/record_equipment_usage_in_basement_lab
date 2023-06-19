@@ -29,7 +29,7 @@ class StartPage(BasePage):
         df = pd.DataFrame(
             [
                 usage_record_to_rowdata(r)
-                for r in session.get_svcs().transaction_controller.usage_records
+                for r in session.get_svcs().transaction_controller.usage_records.values()
             ]
         )
         st.table(df)

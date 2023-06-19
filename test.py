@@ -1,11 +1,11 @@
 import appconfig
 from app.datastore.googleapi.credential import connect_gspread
-from app.datastore.googleapi.spreadsheet_as_db import SpreadsheetAsDataBase
+from app.datastore.googleapi.spreadsheet_proxy import SpreadsheetProxy
 
 gc = connect_gspread()
 
 
-db = SpreadsheetAsDataBase(gc, appconfig.MASTER_SPREADSHEET_KEY)
+db = SpreadsheetProxy(gc, appconfig.MASTER_SPREADSHEET_KEY)
 
 print(db.table_keys)
 
