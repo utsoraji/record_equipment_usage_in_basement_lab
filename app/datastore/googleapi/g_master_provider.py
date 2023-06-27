@@ -1,3 +1,5 @@
+import datetime
+
 import appconfig
 from app.datastore.googleapi.credential import connect_gspread
 from app.datastore.googleapi.spreadsheet_proxy import SpreadsheetProxy
@@ -19,6 +21,15 @@ class GoogleMasterProvider(MasterProvider):
         )
         pass
 
+    def _to_refId(self, id: str | RefId) -> RefId:
+        if isinstance(id, RefId):
+            return id
+        if isinstance(id, str):
+            return RefId(id)
+        if id is None:
+            return None
+        raise ValueError(f"Invalid id type: {type(id)}")
+
     @property
     def users(self) -> dict[RefId, User]:
         def parse_licenses(licenses: str | None) -> set[Equipment]:
@@ -33,16 +44,19 @@ class GoogleMasterProvider(MasterProvider):
                 record["name_roman"],
                 record["name_kanakanji"],
                 self.labos[record["labo"]] if record["labo"] else None,
-                UserPosition(record["position"]) if record["position"] else None,
-                UserRole(record["role"]) if record["role"] else None,
+                UserPosition.value_of(record.get("position")),
+                UserRole.value_of(record.get("role")),
                 parse_licenses(record["licenses"]),
-                conv_from_s_date(record["expire_date"])
-                if record["expire_date"]
-                else None,
+                conv_from_s_date(record.get("expire_date")),
             )
             for record in self._master_db["users"]
         ]
-        return {user.id: user for user in list}
+
+        return {user.id: user for user in list if not user.is_expired()}
+
+    def get_user(self, user_id: RefId | str) -> User:
+        id = self._to_refId(user_id)
+        return self.users.get(id, User.unknown(id))
 
     @property
     def equipments(self) -> dict[RefId, Equipment]:
@@ -51,13 +65,17 @@ class GoogleMasterProvider(MasterProvider):
                 RefId(record["id"]),
                 record["name_roman"],
                 record["name_kanakanji"],
-                record["image_url"],
+                record["image_id"],
                 record["location"],
                 record["check_license"] if record["check_license"] else False,
             )
             for record in self._master_db["equipments"]
         ]
         return {eq.id: eq for eq in list}
+
+    def get_equipment(self, eq_id: RefId | str) -> Equipment:
+        id = self._to_refId(eq_id)
+        return self.equipments.get(id, Equipment.unknown(id))
 
     @property
     def labos(self) -> dict[RefId, Labo]:
@@ -66,3 +84,7 @@ class GoogleMasterProvider(MasterProvider):
             for record in self._master_db["labos"]
         ]
         return {labo.id: labo for labo in list}
+
+    def get_labo(self, labo_id: RefId | str) -> Labo:
+        id = self._to_refId(labo_id)
+        return self.labos.get(id, Labo.unknown(id))

@@ -9,12 +9,9 @@ from app.model.user import User
 
 @dataclass(frozen=True)
 class UsageRecord(Entity):
-    starting: datetime.datetime
-    end_estimate: Optional[datetime.datetime]
-    end_actual: Optional[datetime.datetime]
     user: User
     equipments: set[Equipment]
+    starting: datetime.datetime
+    end_estimate: Optional[datetime.datetime] = None
+    end_actual: Optional[datetime.datetime] = None
     note: Optional[str] = None
-
-    def validate(self) -> None:
-        return super().validate()

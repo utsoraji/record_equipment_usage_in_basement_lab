@@ -12,6 +12,3 @@ class Reservation(Entity):
     end: datetime.datetime
     user: User
     equipments: set[Equipment]
-
-    def validate(self) -> None:
-        return super().validate()

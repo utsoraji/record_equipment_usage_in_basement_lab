@@ -7,6 +7,7 @@ import app.session as session
 from app.const import PageId
 from app.model.usage_record import UsageRecord
 from app.pages.base import BasePage
+from app.pages.components.show_record_summary import show_record_summary
 
 
 class UseFinishPage(BasePage):
@@ -19,20 +20,16 @@ class UseFinishPage(BasePage):
         target: UsageRecord = session.get_cxt().target_usage_record
         if target is None:
             st.error("No usage record selected")
+            st.sidebar.button("Restart", on_click=session.restart)
             st.stop()
 
-        equipment_string = ", ".join(eq.name for eq in target.equipments)
-        st.write(f"{equipment_string}")
-        st.write(f"Started at {target.starting}")
-        st.write(f"Estimated end at {target.end_estimate}")
+        show_record_summary(target)
 
-        self.render_finish(target)
+        st.divider()
 
-    def render_finish(self, target: UsageRecord) -> None:
-        st.subheader("Finish to Use")
         finishtime = pd.to_datetime(datetime.now()).round("min")
 
-        if st.checkbox("Specify finish time", value=False):
+        if self.toggle("Specify finish time"):
             d = st.date_input(
                 "End date",
                 value=datetime.date(finishtime),
@@ -46,10 +43,27 @@ class UseFinishPage(BasePage):
 
             finishtime = datetime.combine(d, t)
 
+        if self.toggle("Write note"):
+            note = st.text_area("Note", value=target.note, label_visibility="collapsed")
+
+        st.divider()
+
         finish = st.button(
             "Finish to Use",
         )
 
         if finish:
-            st.write(f"Finish time: {finishtime}")
-            # TODO
+            with st.spinner("Saving..."):
+                result = session.get_svcs().transaction_controller.finish_usage_record(
+                    UsageRecord(
+                        id=target.id,
+                        user=target.user,
+                        equipments=target.equipments,
+                        starting=target.starting,
+                        end_estimate=target.end_estimate,
+                        end_actual=finishtime,
+                        note=note,
+                    )
+                )
+            session.get_cxt().goto(PageId.START)
+            st.experimental_rerun()

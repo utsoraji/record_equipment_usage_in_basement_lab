@@ -10,6 +10,6 @@ def connect_gspread() -> gspread.Client:
 
 def get_credentials(scopes: list[str]) -> service_account.Credentials:
     return service_account.Credentials.from_service_account_file(
-        appconfig.SERVICE_ACCOUNT_PATH,
-        scopes,
+        filename=appconfig.SERVICE_ACCOUNT_PATH,
+        scopes=scopes,
     )

@@ -12,11 +12,10 @@ class RefId:
     def __eq__(self, other: object) -> bool:
         return isinstance(other, RefId) and self.id == other.id
 
+    def __hash__(self) -> int:
+        return self.id.__hash__()
+
 
 @dataclass(frozen=True)
 class Entity(ABC):
     id: RefId
-
-    @abstractmethod
-    def validate(self) -> None:
-        ...

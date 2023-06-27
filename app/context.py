@@ -36,6 +36,10 @@ class AppContext:
         return self._back_destination
 
     @property
+    def previous_page(self) -> PageId:
+        return self._back_destination
+
+    @property
     def current_user(self) -> User:
         return self._current_user
 

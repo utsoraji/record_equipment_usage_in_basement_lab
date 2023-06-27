@@ -12,6 +12,7 @@ class App:
 
     def render(self):
         st.sidebar.button("Reset", on_click=session.reset)
+        st.sidebar.button("Restart", on_click=session.restart)
         st.sidebar.button(
             "Back",
             on_click=lambda: session.get_cxt().go_back(),

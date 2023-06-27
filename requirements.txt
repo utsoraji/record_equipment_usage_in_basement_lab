@@ -2,6 +2,7 @@ python-dotenv
 numpy
 streamlit
 streamlit-pills
+streamlit-toggle-switch
 pandas
 gspread
 google-auth

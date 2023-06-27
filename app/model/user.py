@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Optional
 
-from app.model.entity import Entity
+from app.model.entity import Entity, RefId
 from app.model.equipment import Equipment
 from app.model.labo import Labo
 
@@ -14,11 +14,25 @@ class UserPosition(Enum):
     STAFF = auto()
     NONE = auto()
 
+    @classmethod
+    def value_of(cls, target_value):
+        try:
+            return cls[target_value]
+        except ValueError:
+            return cls.NONE
+
 
 class UserRole(Enum):
     ADMIN = auto()
     USER = auto()
     NONE = auto()
+
+    @classmethod
+    def value_of(cls, target_value):
+        try:
+            return cls[target_value]
+        except ValueError:
+            return cls.NONE
 
 
 @dataclass(frozen=True)
@@ -41,16 +55,16 @@ class User(Entity):
         else:
             return f"ID: {self.id}"
 
-    def validate(self) -> None:
-        return super().validate()
+    def is_expired(
+        self, reference_date: datetime.datetime = datetime.datetime.now()
+    ) -> bool:
+        return self.expire_date is not None and self.expire_date <= reference_date
 
     @classmethod
-    def empty(cls) -> "User":
+    def unknown(cls, id: str | RefId) -> "User":
         return cls(
-            "-",
-            "-",
-            "-",
-            "-",
-            licenses=[],
-            expire_date=None,
+            id,
+            "",
+            f"Unknown ID:{id}",
+            "",
         )

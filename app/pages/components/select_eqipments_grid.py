@@ -1,28 +1,42 @@
+from collections import OrderedDict
 from typing import Iterable
 
 import streamlit as st
+from streamlit_pills import pills
 
+import app.session as session
 from app.model.equipment import Equipment
 
 
-def state_key(eq: Equipment) -> str:
-    return f"selected_state_{eq.id}"
-
-
 def eqipments_grid(
-    equipments: Iterable[Equipment], column_count: int = 4
+    equipments: Iterable[Equipment], key: str, column_count: int = 4
 ) -> list[Equipment]:
+    # filter by location
     rooms = list(set(eq.location for eq in equipments))
-    selected_rooms: list[str] = st.multiselect(
-        "Select equipments to use", rooms, default=rooms
-    )
-    filter = lambda eq: eq.location in selected_rooms
+    rooms.sort()
+    selected_rooms: list[str] = pills("Select equipments to use", rooms)
+
+    def location_filer(eq: Equipment) -> bool:
+        return eq.location in selected_rooms
+
+    selected: list[Equipment] = st.session_state.get(key, [])
+    check_states: OrderedDict[str, bool] = OrderedDict(
+        {eq.id: True for eq in selected}
+    )  # add selected # sustain selection order
 
     cols = st.columns(column_count)
-
-    for idx, eq in enumerate(eq for eq in equipments if filter(eq)):
+    for idx, eq in enumerate(eq for eq in equipments if location_filer(eq)):
         col = cols[idx % column_count]
-        col.image(eq.image_url, width=150)
-        col.checkbox(eq.name, value=False, key=state_key(eq))
+        image = session.get_svcs().static_resource_provider.get_image(eq.image_id)
+        col.image(image)
+        check_states[eq.id] = col.checkbox(
+            eq.name, value=check_states.get(eq.id, False)
+        )
 
-    return [eq for eq in equipments if st.session_state[state_key(eq)]]
+    # add in order of selection
+    eq_dict = {eq.id: eq for eq in equipments}
+    selected = [eq_dict[id] for id in check_states.keys() if check_states[id]]
+
+    st.session_state[key] = selected
+
+    return selected

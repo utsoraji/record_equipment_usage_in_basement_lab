@@ -26,6 +26,7 @@ class StartPage(BasePage):
                 "note": record.note,
             }
 
+        st.write("List of Equipments in Use")
         df = pd.DataFrame(
             [
                 usage_record_to_rowdata(r)

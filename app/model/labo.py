@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional
 
-from app.model.entity import Entity
+from app.model.entity import Entity, RefId
 
 
 @dataclass(frozen=True)
@@ -18,5 +18,10 @@ class Labo(Entity):
         else:
             return f"ID: {self.id}"
 
-    def validate(self) -> None:
-        return super().validate()
+    @classmethod
+    def unknown(cls, id: str | RefId) -> "Labo":
+        return cls(
+            id,
+            f"Unknown ID:{id}",
+            "",
+        )

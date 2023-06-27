@@ -36,7 +36,6 @@ def wait_for_element(driver, by: By, value):
         try:
             time.sleep(1)
             return driver.find_element(by=by, value=value)
-            break
         except:
             count += 1
             if count > 10:

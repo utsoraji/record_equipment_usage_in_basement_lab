@@ -2,13 +2,15 @@ from datetime import datetime
 
 import pandas as pd
 import streamlit as st
+import streamlit_toggle as tog
 
 import app.session as session
 from app.const import PageId
-from app.datastore.protocol import MasterProvider, NewUsageRecord, TransactionController
+from app.datastore.protocol import NewUsageRecord, TransactionController
 from app.model.equipment import Equipment
 from app.pages.base import BasePage
 from app.pages.components.select_eqipments_grid import eqipments_grid
+from app.pages.components.show_record_summary import show_record_summary
 
 
 def check_license(new_usage: NewUsageRecord) -> list[str]:
@@ -35,14 +37,17 @@ def check_current_usage(
 def check_reservation(
     new_usage: NewUsageRecord, transaction_controller: TransactionController
 ) -> list[str]:
-    reserved: set[Equipment] = set()
+    ret: list[str] = []
     for res in transaction_controller.reservations.values():
-        res = reserved.union(res.equipments)
+        booking = set(res.equipments).intersection(new_usage.equipments)
+        ret.extend(
+            [
+                f" {eq.name} is reserved from {res.starting} to {res.end} by {res.user.name}."
+                for eq in booking
+            ]
+        )
 
-    return [
-        f" {eq.name} is reserved today."
-        for eq in (reserved.intersection(new_usage.equipments))
-    ]
+    return ret
 
 
 class UseStartPage(BasePage):
@@ -54,11 +59,12 @@ class UseStartPage(BasePage):
 
         selected_equipments = eqipments_grid(
             session.get_svcs().master_provider.equipments.values(),
+            "use_start__selected_equipments",
         )
 
         starttime = pd.to_datetime(datetime.now()).round("min")
 
-        if st.checkbox("Specify start time", value=False):
+        if self.toggle("Specify start time"):
             d = st.date_input(
                 "Start date",
                 value=datetime.date(starttime),
@@ -72,35 +78,25 @@ class UseStartPage(BasePage):
 
             starttime = datetime.combine(d, t)
 
-        st.divider()
-        selected_names = ", ".join(eq.name for eq in selected_equipments)
-        st.text(f"Selected:{selected_names}")
-        st.text(f"Start at:{starttime}")
-
-        any_warning_exists = False
+        note = None
+        if self.toggle("Write note"):
+            note = st.text_area("Note", label_visibility="collapsed")
 
         new_record: NewUsageRecord = NewUsageRecord(
-            starting=starttime,
-            end_estimate=None,
-            equipments=selected_equipments,
             user=session.get_cxt().current_user,
+            equipments=selected_equipments,
+            starting=starttime,
+            note=note,
         )
+        st.divider()
+        show_record_summary(new_record)
 
-        warnings: list[str] = []
-        warnings += check_license(new_record)
-        warnings += check_current_usage(
-            new_record, session.get_svcs().transaction_controller
-        )
-        warnings += check_reservation(
-            new_record, session.get_svcs().transaction_controller
-        )
-
-        any_warning_exists = len(warnings) > 0
+        warnings: list[str] = self.check_warnings(new_record)
         for w in warnings:
             st.warning(w)
 
         start = st.button(
-            any_warning_exists and "Start anyway" or "Start",
+            len(warnings) > 0 and "Start anyway" or "Start",
             disabled=len(selected_equipments) == 0,
         )
 
@@ -109,6 +105,17 @@ class UseStartPage(BasePage):
                 reslut = session.get_svcs().transaction_controller.add_usage_record(
                     new_record
                 )
-                session.get_cxt().set_target_usage_record(reslut)
-                session.get_cxt().goto(PageId.ENTRY)
             # TODO
+            session.get_cxt().goto(PageId.START)
+            st.experimental_rerun()
+
+    def check_warnings(self, new_usage: NewUsageRecord) -> list[str]:
+        warnings: list[str] = []
+        warnings += check_license(new_usage)
+        warnings += check_current_usage(
+            new_usage, session.get_svcs().transaction_controller
+        )
+        warnings += check_reservation(
+            new_usage, session.get_svcs().transaction_controller
+        )
+        return warnings
